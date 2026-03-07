@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -6,12 +8,14 @@ from app.database import get_db, Base
 from app.models import Product
 from app.schemas import ProductCreate, ProductUpdate, ProductResponse
 
-app = FastAPI(title="Product Service", version="1.0.0")
 
-
-@app.on_event("startup")
-def on_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=db_module.engine)
+    yield
+
+
+app = FastAPI(title="Product Service", version="1.0.0", lifespan=lifespan)
 
 
 @app.get("/health")
