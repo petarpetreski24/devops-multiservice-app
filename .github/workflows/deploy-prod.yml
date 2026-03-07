@@ -1,0 +1,54 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment: production  # Requires manual approval via GitHub Environment protection rules
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push User Service
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}/user-service:latest ./user-service
+          docker build -t ghcr.io/${{ github.repository }}/user-service:${{ github.sha }} ./user-service
+          docker push ghcr.io/${{ github.repository }}/user-service:latest
+          docker push ghcr.io/${{ github.repository }}/user-service:${{ github.sha }}
+
+      - name: Build and push Product Service
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}/product-service:latest ./product-service
+          docker build -t ghcr.io/${{ github.repository }}/product-service:${{ github.sha }} ./product-service
+          docker push ghcr.io/${{ github.repository }}/product-service:latest
+          docker push ghcr.io/${{ github.repository }}/product-service:${{ github.sha }}
+
+      - name: Deploy to Production Environment
+        run: |
+          echo "========================================="
+          echo "  Deploying to PRODUCTION environment"
+          echo "========================================="
+          echo ""
+          echo "Image tags: latest + ${{ github.sha }}"
+          echo "Services deployed:"
+          echo "  - user-service:latest"
+          echo "  - product-service:latest"
+          echo ""
+          echo "In a real setup, this would run:"
+          echo "  docker compose -f docker-compose.prod.yml up -d"
+          echo "  on the production server"
+          echo ""
+          echo "✅ Production deployment complete!"

@@ -1,0 +1,50 @@
+name: Deploy to Dev
+
+on:
+  push:
+    branches: [develop]
+
+jobs:
+  deploy-dev:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    environment: development
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push User Service
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}/user-service:dev-${{ github.sha }} ./user-service
+          docker push ghcr.io/${{ github.repository }}/user-service:dev-${{ github.sha }}
+
+      - name: Build and push Product Service
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}/product-service:dev-${{ github.sha }} ./product-service
+          docker push ghcr.io/${{ github.repository }}/product-service:dev-${{ github.sha }}
+
+      - name: Deploy to Dev Environment
+        run: |
+          echo "========================================="
+          echo "  Deploying to DEVELOPMENT environment"
+          echo "========================================="
+          echo ""
+          echo "Image tags: dev-${{ github.sha }}"
+          echo "Services deployed:"
+          echo "  - user-service:dev-${{ github.sha }}"
+          echo "  - product-service:dev-${{ github.sha }}"
+          echo ""
+          echo "In a real setup, this would run:"
+          echo "  docker compose -f docker-compose.prod.yml up -d"
+          echo "  on the development server"
+          echo ""
+          echo "✅ Dev deployment complete!"
