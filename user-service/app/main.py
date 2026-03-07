@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
 from fastapi import FastAPI, Depends, HTTPException, status
@@ -11,12 +12,14 @@ from app.database import get_db, Base
 from app.models import User
 from app.schemas import UserCreate, UserUpdate, UserResponse, UserLogin, Token
 
-app = FastAPI(title="User Service", version="1.0.0")
 
-
-@app.on_event("startup")
-def on_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=db_module.engine)
+    yield
+
+
+app = FastAPI(title="User Service", version="1.0.0", lifespan=lifespan)
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
